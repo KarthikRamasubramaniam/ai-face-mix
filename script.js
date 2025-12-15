@@ -51,10 +51,204 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 // const getRandomId = () => Math.floor(Math.random() * TOTAL_IMAGES) + 1;
 const getRandomImage = () => AVAILABLE_IMAGES[Math.floor(Math.random() * AVAILABLE_IMAGES.length)];
 
+// --- AUDIO MANAGER (Procedural Sci-Fi Sounds) ---
+class AudioManager {
+    constructor() {
+        this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        this.masterGain = this.ctx.createGain();
+        this.masterGain.gain.value = 0.3; // Safe volume
+        this.masterGain.connect(this.ctx.destination);
+    }
+
+    resume() {
+        if (this.ctx.state === 'suspended') {
+            this.ctx.resume();
+        }
+    }
+
+    // Generic Oscillator Helper
+    playTone(freq, type, duration, startTime = 0, vol = 1) {
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, this.ctx.currentTime + startTime);
+
+        gain.gain.setValueAtTime(vol, this.ctx.currentTime + startTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + startTime + duration);
+
+        osc.connect(gain);
+        gain.connect(this.masterGain);
+
+        osc.start(this.ctx.currentTime + startTime);
+        osc.stop(this.ctx.currentTime + startTime + duration);
+    }
+
+    // 1. High-tech Button Click
+    playClick() {
+        this.resume();
+        // Double chirp
+        this.playTone(1200, 'sine', 0.1, 0, 0.5);
+        this.playTone(2000, 'square', 0.05, 0.05, 0.3);
+    }
+
+    // 2. Holographic Hover
+    playHover() {
+        this.resume();
+        // Very short high tick
+        this.playTone(800, 'triangle', 0.05, 0, 0.1);
+    }
+
+    // 3. Screen Transition (Whoosh)
+    playTransition() {
+        this.resume();
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        // Noise buffer would be better, but frequency sweep works for "energy"
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(100, this.ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(800, this.ctx.currentTime + 0.3);
+
+        gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0, this.ctx.currentTime + 0.3);
+
+        osc.connect(gain);
+        gain.connect(this.masterGain);
+
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.3);
+    }
+
+    // 4. Scanning Loop (Rhythmic Data)
+    startScanningSound() {
+        this.resume();
+        this.isScanning = true;
+        this.scanInterval = setInterval(() => {
+            if (!this.isScanning) return;
+            // Random data blips
+            const freq = 800 + Math.random() * 800;
+            this.playTone(freq, 'sine', 0.05, 0, 0.1);
+        }, 100);
+    }
+
+    stopScanningSound() {
+        this.isScanning = false;
+        if (this.scanInterval) clearInterval(this.scanInterval);
+    }
+
+    // 5. Energy Buildup (Split/Merge) - Suspenseful Heartbeat & Riser
+    playEnergyBuildup() {
+        this.resume();
+        const duration = 3.5; // Extended for suspense
+        const now = this.ctx.currentTime;
+
+        // 1. HEARTBEAT (Thumping Bass)
+        const beatCount = 5;
+        for (let i = 0; i < beatCount; i++) {
+            const time = now + (i * 0.6); // 600ms gap approx
+            // Thump 1 (Lub)
+            const osc = this.ctx.createOscillator();
+            const g = this.ctx.createGain();
+            osc.frequency.setValueAtTime(60, time);
+            osc.frequency.exponentialRampToValueAtTime(30, time + 0.1);
+            g.gain.setValueAtTime(0.6, time);
+            g.gain.exponentialRampToValueAtTime(0.01, time + 0.15);
+            osc.connect(g);
+            g.connect(this.masterGain);
+            osc.start(time);
+            osc.stop(time + 0.2);
+
+            // Thump 2 (Dub) - lighter
+            const osc2 = this.ctx.createOscillator();
+            const g2 = this.ctx.createGain();
+            osc2.frequency.setValueAtTime(50, time + 0.15);
+            osc2.frequency.exponentialRampToValueAtTime(25, time + 0.25);
+            g2.gain.setValueAtTime(0.4, time + 0.15);
+            g2.gain.exponentialRampToValueAtTime(0.01, time + 0.3);
+            osc2.connect(g2);
+            g2.connect(this.masterGain);
+            osc2.start(time + 0.15);
+            osc2.stop(time + 0.35);
+        }
+
+        // 2. TENSION RISER (High pitch whine + wobble)
+        const riserOsc = this.ctx.createOscillator();
+        const riserGain = this.ctx.createGain();
+        riserOsc.type = 'triangle';
+        riserOsc.frequency.setValueAtTime(200, now);
+        // Slowly rise then accelerate
+        riserOsc.frequency.linearRampToValueAtTime(800, now + duration * 0.8);
+        riserOsc.frequency.exponentialRampToValueAtTime(2000, now + duration);
+
+        // Tremolo/Wobble effect
+        const lfo = this.ctx.createOscillator();
+        const lfoGain = this.ctx.createGain();
+        lfo.frequency.setValueAtTime(5, now);
+        lfo.frequency.linearRampToValueAtTime(20, now + duration);
+        lfo.connect(lfoGain);
+        lfoGain.gain.value = 500; // Modulation depth
+        lfoGain.connect(riserOsc.frequency);
+        lfo.start(now);
+        lfo.stop(now + duration);
+
+        riserGain.gain.setValueAtTime(0, now);
+        riserGain.gain.linearRampToValueAtTime(0.2, now + duration);
+
+        riserOsc.connect(riserGain);
+        riserGain.connect(this.masterGain);
+        riserOsc.start(now);
+        riserOsc.stop(now + duration);
+
+        // 3. CLIMAX CYMBAL/CRASH (White Noise)
+        const noiseBuffer = this.ctx.createBuffer(1, this.ctx.sampleRate * 1.5, this.ctx.sampleRate);
+        const data = noiseBuffer.getChannelData(0);
+        for (let i = 0; i < this.ctx.sampleRate * 1.5; i++) {
+            data[i] = Math.random() * 2 - 1;
+        }
+        const noise = this.ctx.createBufferSource();
+        noise.buffer = noiseBuffer;
+        const noiseFilter = this.ctx.createBiquadFilter();
+        noiseFilter.type = 'highpass';
+        noiseFilter.frequency.value = 1000;
+        const noiseGain = this.ctx.createGain();
+
+        // Trigger at end
+        noiseGain.gain.setValueAtTime(0, now + duration - 0.1);
+        noiseGain.gain.linearRampToValueAtTime(0.5, now + duration);
+        noiseGain.gain.exponentialRampToValueAtTime(0.01, now + duration + 1.2);
+
+        noise.connect(noiseFilter);
+        noiseFilter.connect(noiseGain);
+        noiseGain.connect(this.masterGain);
+        noise.start(now + duration); // Boom at the end
+    }
+}
+
+const audioManager = new AudioManager();
+
 // --- INITIALIZATION ---
 async function init() {
     createFloatingShards();
-    document.getElementById('start-btn').addEventListener('click', startSelectionPhase);
+
+    // UI Audio Bindings
+    document.addEventListener('click', () => audioManager.resume()); // Ensure context unlock
+
+    // Bind all buttons for generic click sound
+    document.querySelectorAll('button').forEach(btn => {
+        btn.addEventListener('mouseenter', () => audioManager.playHover());
+        btn.addEventListener('click', () => audioManager.playClick());
+    });
+
+    const startBtn = document.getElementById('start-btn');
+    startBtn.addEventListener('click', startSelectionPhase);
+    // Explicitly add hover for start button just in case, or to add a special sound if desired later
+    startBtn.addEventListener('mouseenter', () => {
+        // We can use the same hover sound, but ensure resume is called
+        audioManager.resume();
+        audioManager.playHover();
+    });
+
     splitBtn.addEventListener('click', triggerStormSplit);
     resetBtn.addEventListener('click', resetGame);
 
@@ -100,6 +294,7 @@ function resetGame() {
 
 function createFloatingShards() {
     const container = document.querySelector('.floating-shards');
+    container.innerHTML = '';
     for (let i = 0; i < 15; i++) {
         const shard = document.createElement('div');
         shard.className = 'shard';
@@ -118,15 +313,47 @@ function createFloatingShards() {
 // --- PHASE 1 -> 2: SELECTION (MOSAIC) ---
 async function startSelectionPhase() {
     switchScreen('selection');
+    audioManager.playTransition();
+
+    // Start Scanning Audio
+    audioManager.startScanningSound();
+
+    // Text-to-Speech Announcement
+    if ('speechSynthesis' in window) {
+        const utterance = new SpeechSynthesisUtterance("Scanning infinite realities.");
+        utterance.rate = 0.9; // Slightly slower for dramatic effect
+        utterance.pitch = 1.0; // Natural pitch
+
+        // Wait for voices to be loaded (sometimes async in Chrome)
+        const findVoice = () => {
+            const voices = window.speechSynthesis.getVoices();
+            console.log("Available Voices:", voices.map(v => v.name));
+
+            const robotVoice = voices.find(v => v.name.toLowerCase().includes('google') || v.name.toLowerCase().includes('zira'));
+            if (robotVoice) {
+                utterance.voice = robotVoice;
+            }
+
+            // Force robotic pitch
+            utterance.pitch = 0.6;
+            utterance.rate = 1.0;
+
+            window.speechSynthesis.speak(utterance);
+        };
+
+        if (window.speechSynthesis.getVoices().length === 0) {
+            window.speechSynthesis.onvoiceschanged = findVoice;
+        } else {
+            findVoice();
+        }
+    }
 
     // 1. Populate full screen grid
-    // Need enough to cover screen. 150 items usually safe for 1080p.
     mosaicGrid.innerHTML = '';
     const items = [];
     for (let i = 0; i < 150; i++) {
-        // const id = (i % TOTAL_IMAGES) + 1; // Removed
         const div = document.createElement('div');
-        div.className = 'mosaic-item'; // CSS handles size
+        div.className = 'mosaic-item';
         const img = document.createElement('img');
         img.src = `${ASSET_PATH}${getRandomImage()}`;
         img.className = 'mosaic-item';
@@ -135,33 +362,31 @@ async function startSelectionPhase() {
         items.push(img);
     }
 
-    // 2. Animate "Phasing" (random flickering)
+    // 2. Animate "Phasing"
     const phasingInterval = setInterval(() => {
-        // Pick random items to phase
         const idx = Math.floor(Math.random() * items.length);
         const item = items[idx];
         item.classList.add('phasing');
         setTimeout(() => item.classList.remove('phasing'), 300);
     }, 100);
 
-    // 3. Select Targets based on JSON
-    // If no data, fallback to random (safety)
     let roundData = null;
     if (gameData && gameData.length > 0) {
         roundData = gameData[currentRoundIndex];
     }
 
-    // Wait for "Scanning" drama (3 seconds)
+    // Drama wait
     await sleep(4000);
     clearInterval(phasingInterval);
+    audioManager.stopScanningSound(); // Stop Loop
 
     startMergePhase(roundData);
 }
 
 // --- PHASE 2 -> 3: MERGE (SPHERE) ---
-// --- PHASE 2 -> 3: MERGE (SPHERE) ---
 async function startMergePhase(roundData) {
     switchScreen('merge');
+    audioManager.playTransition();
 
     // Load and Merge
     try {
@@ -261,40 +486,37 @@ async function startMergePhase(roundData) {
 }
 
 // --- PHASE 3 -> 4: STORM SPLIT ---
-// --- PHASE 3 -> 4: STORM SPLIT (Now Infusion) ---
 async function triggerStormSplit() {
-    splitBtn.classList.add('hidden'); // Hide button
+    splitBtn.classList.add('hidden');
+    audioManager.playEnergyBuildup(); // Big sci-fi sound
 
-    // 1. INFUSION DETONATION
-    // Instead of splitting, we infuse the energy
     const sphere = document.querySelector('.energy-sphere');
     sphere.classList.add('infusing');
 
-    // Wait for animation to complete (CSS is 1.5s)
-    await sleep(1500);
+    // Wait 3.5 seconds to match the audio drama
+    await sleep(3500);
 
-    // 2. TRANSITION TO REVEAL
     screens.merge.classList.remove('active');
     screens.merge.classList.add('hidden');
-
-    // Reset sphere state immediately so it's ready for next time (even though hidden)
     sphere.classList.remove('infusing');
 
     screens.reveal.classList.remove('hidden');
-    screens.reveal.classList.add('active'); // Triggers CSS floatUp anims
+    screens.reveal.classList.add('active');
+
+    audioManager.playTransition(); // Reveal transition
 }
 
 // --- UTILS ---
 function switchScreen(name) {
+    if (screens[name].classList.contains('active')) return; // Dedup
+
     Object.values(screens).forEach(s => {
         s.classList.remove('active');
         s.classList.add('hidden');
     });
 
-    // Tiny delay to ensure DOM paint before fade-in
     const target = screens[name];
     target.classList.remove('hidden');
-    // Force reflow
     void target.offsetWidth;
     target.classList.add('active');
 }

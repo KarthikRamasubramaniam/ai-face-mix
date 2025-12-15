@@ -526,24 +526,23 @@ body {
    Actually floatUp animates translate.
    Let's bake the scale into the animation or just rely on flex size/width.
 */
+/* Reveal Center Card Specifics */
 .reveal-card.center-card {
     flex: 1.2;
     max-width: 450px;
     z-index: 10;
-    /* No scale transform here to avoid conflict with animation, rely on width */
+    overflow: hidden; /* Crop the zoomed image */
+    border-radius: 10px; /* Slight rounded corners for the frame */
 }
 
-/* Staggered Animation */
-.reveal-card:nth-child(1) {
-    animation-delay: 0.1s;
+/* Ensure animation doesn't fight the scale. */
+.reveal-card.center-card img {
+    transform: scale(1.35); /* Zoom in to crop circular borders */
+    transition: transform 0.5s ease;
 }
 
-.reveal-card:nth-child(2) {
-    animation-delay: 0.3s;
-}
-
-.reveal-card:nth-child(3) {
-    animation-delay: 0.5s;
+.reveal-card.center-card:hover img {
+    transform: scale(1.45); /* Subtle zoom on hover */
 }
 
 .portal-halo {
@@ -551,27 +550,28 @@ body {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 120%;
-    /* Larger Halo */
-    height: 120%;
-    background: radial-gradient(circle, rgba(188, 19, 254, 0.2) 0%, transparent 70%);
+    width: 100%;
+    height: 100%;
+    /* Rectangular glow matching the card shape */
+    background: radial-gradient(ellipse at center, rgba(188, 19, 254, 0.4) 0%, transparent 80%);
     z-index: -1;
     animation: pulse 3s infinite;
+    border-radius: 20px;
+    filter: blur(20px);
 }
 
 .highlight-halo {
-    background: radial-gradient(circle, rgba(0, 243, 255, 0.3) 0%, transparent 70%);
+    background: radial-gradient(ellipse at center, rgba(0, 243, 255, 0.4) 0%, transparent 80%);
     animation: pulse 2s infinite;
-    /* Faster pulse for center */
 }
 
 .reveal-card img {
     width: 100%;
     aspect-ratio: 1 / 1.1;
-    /* Consistent portrait-ish ratio */
     object-fit: cover;
-    border: 3px solid var(--neon-cyan);
-    box-shadow: 0 0 20px rgba(0, 243, 255, 0.3);
+    border: 2px solid var(--neon-cyan);
+    box-shadow: 0 0 30px rgba(0, 243, 255, 0.2);
+    background: #000; /* Hide white corners if image is transparent */
 }
 
 .name-plate {
