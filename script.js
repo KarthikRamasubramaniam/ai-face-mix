@@ -3,15 +3,30 @@ const ASSET_PATH = 'assets/';
 
 // List of actual files present in assets folder
 const AVAILABLE_IMAGES = [
-    'gaurav.jpeg',
-    'img001.jpeg',
-    'img002.jpg',
-    'preview-merged.jpeg',
-    'shailesh+gaurav.jpeg',
-    'shailesh.jpeg',
-    'sudheer+tarun.jpeg',
-    'sudheer.jpeg',
-    'tarun.jpeg'
+    'Akhand_Kumar.png',
+    'Akhand_Rahul.png',
+    'Anish_Shah.jpeg',
+    'BP_Singh.jpeg',
+    'Brijesh_BP.png',
+    'Brijesh_Datta.jpg',
+    'Deepak_Kamale.jpeg',
+    'Gaurav_Aggarwal.png',
+    'Gaurav_Duggal.png',
+    'Gaurav_Mohsin.png',
+    'Kiran_Anish.png',
+    'Kiran_Thomas.png',
+    'Mohsin_Abbas.png',
+    'Nilesh_Mahajan.jpeg',
+    'Nilesh_Sameer.png',
+    'Raghuram_Deepak.png',
+    'Raghuram_Velega.jpeg',
+    'Rahul_Mukherjee.jpeg',
+    'Sameer_Mehta.jpeg',
+    'Shailesh_Gaurav.png',
+    'Shailesh_Naik.jpeg',
+    'Sudhir_Mittal.jpeg',
+    'Sudhir_Tarun.png',
+    'Tarun_Kalra.jpeg'
 ];
 
 // --- STATE ---
@@ -51,12 +66,148 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 // const getRandomId = () => Math.floor(Math.random() * TOTAL_IMAGES) + 1;
 const getRandomImage = () => AVAILABLE_IMAGES[Math.floor(Math.random() * AVAILABLE_IMAGES.length)];
 
+// --- SOUND SYSTEM ---
+class SoundSystem {
+    constructor() {
+        this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        this.masterGain = this.ctx.createGain();
+        this.masterGain.gain.value = 0.3; // Global volume
+        this.masterGain.connect(this.ctx.destination);
+        this.initialized = false;
+    }
+
+    ensureContext() {
+        if (!this.initialized) {
+            this.ctx.resume().then(() => {
+                this.initialized = true;
+            });
+        }
+    }
+
+    playTone(freq, type, duration, startTime = 0) {
+        this.ensureContext();
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, this.ctx.currentTime + startTime);
+        gain.gain.setValueAtTime(0.5, this.ctx.currentTime + startTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + startTime + duration);
+        osc.connect(gain);
+        gain.connect(this.masterGain);
+        osc.start(this.ctx.currentTime + startTime);
+        osc.stop(this.ctx.currentTime + startTime + duration);
+    }
+
+    playClick() {
+        this.playTone(600, 'triangle', 0.1);
+    }
+
+    playHover() {
+        this.playTone(300, 'sine', 0.05);
+    }
+
+    playPowerUp() {
+        this.ensureContext();
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.frequency.setValueAtTime(200, this.ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(800, this.ctx.currentTime + 1);
+        gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0, this.ctx.currentTime + 1);
+        osc.connect(gain);
+        gain.connect(this.masterGain);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 1);
+    }
+
+    playWarp() {
+        this.ensureContext();
+
+        // Primary "Tear" Sound
+        const t = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(800, t);
+        osc.frequency.exponentialRampToValueAtTime(100, t + 0.8);
+
+        // Modulator for roughness
+        const mod = this.ctx.createOscillator();
+        mod.type = 'square';
+        mod.frequency.value = 50;
+        const modGain = this.ctx.createGain();
+        modGain.gain.value = 500;
+        mod.connect(modGain);
+        modGain.connect(osc.frequency);
+
+        // Envelope
+        gain.gain.setValueAtTime(0.5, t);
+        gain.gain.exponentialRampToValueAtTime(0.01, t + 0.8);
+
+        // Sub-bass impact
+        const sub = this.ctx.createOscillator();
+        const subGain = this.ctx.createGain();
+        sub.type = 'sine';
+        sub.frequency.setValueAtTime(150, t);
+        sub.frequency.exponentialRampToValueAtTime(0.01, t + 0.5);
+        subGain.gain.setValueAtTime(0.5, t);
+        subGain.gain.exponentialRampToValueAtTime(0.01, t + 0.5);
+
+        // Connections
+        mod.start(t);
+        mod.stop(t + 0.8);
+
+        osc.connect(gain);
+        gain.connect(this.masterGain);
+        osc.start(t);
+        osc.stop(t + 0.8);
+
+        sub.connect(subGain);
+        subGain.connect(this.masterGain);
+        sub.start(t);
+        sub.stop(t + 0.5);
+    }
+
+    playReveal() {
+        this.ensureContext();
+        const now = this.ctx.currentTime;
+        // Major chord arpeggio
+        this.playTone(440, 'sine', 1.5, 0);       // A4
+        this.playTone(554.37, 'sine', 1.5, 0.1); // C#5
+        this.playTone(659.25, 'sine', 1.5, 0.2); // E5
+        this.playTone(880, 'sine', 2.0, 0.4);    // A5
+    }
+}
+
+const sfx = new SoundSystem();
+
 // --- INITIALIZATION ---
 async function init() {
     createFloatingShards();
-    document.getElementById('start-btn').addEventListener('click', startSelectionPhase);
-    splitBtn.addEventListener('click', triggerStormSplit);
-    resetBtn.addEventListener('click', resetGame);
+
+    // Initialize Audio Context on first interaction
+    document.body.addEventListener('click', () => sfx.ensureContext(), { once: true });
+
+    // Button SFX
+    document.querySelectorAll('button').forEach(btn => {
+        btn.addEventListener('mouseenter', () => sfx.playHover());
+    });
+
+    document.getElementById('start-btn').addEventListener('click', () => {
+        sfx.playPowerUp();
+        startSelectionPhase();
+    });
+
+    splitBtn.addEventListener('click', () => {
+        sfx.playWarp();
+        triggerStormSplit();
+    });
+
+    resetBtn.addEventListener('click', () => {
+        sfx.playClick();
+        resetGame();
+    });
 
     // Load Game Data
     try {
@@ -166,7 +317,7 @@ async function startMergePhase(roundData) {
     // Load and Merge
     try {
         // Fallback if no specific data
-        const mergedSrc = roundData ? roundData["split the indenties image"] : 'assets/preview-merged.jpg';
+        const mergedSrc = roundData ? roundData["split the indenties image"] : 'assets/preview-merged.jpeg';
 
         // Update Clue Text
         const clueText = document.getElementById('clue-text');
@@ -245,11 +396,16 @@ async function startMergePhase(roundData) {
             revealNameA.textContent = roundData["left text"] || "HR";
             revealNameB.textContent = roundData["right text"] || "AI";
 
+            const revealOriginA = document.getElementById('reveal-origin-a');
+            const revealOriginB = document.getElementById('reveal-origin-b');
+            if (revealOriginA) revealOriginA.textContent = roundData["qleft image name"] || "UNIVERSE A";
+            if (revealOriginB) revealOriginB.textContent = roundData["right image name"] || "UNIVERSE B";
+
             const centerName = document.querySelector('.center-card .hero-name');
             if (centerName) centerName.textContent = "FUSION COMPLETE";
         } else {
             // Fallback
-            revealImgA.src = `assets/img001.jpg`;
+            revealImgA.src = `assets/img001.jpeg`;
             revealImgB.src = `assets/img002.jpg`;
             revealNameA.textContent = "HR";
             revealNameB.textContent = "AI";
@@ -282,6 +438,9 @@ async function triggerStormSplit() {
 
     screens.reveal.classList.remove('hidden');
     screens.reveal.classList.add('active'); // Triggers CSS floatUp anims
+
+    // Play success sound
+    sfx.playReveal();
 }
 
 // --- UTILS ---
